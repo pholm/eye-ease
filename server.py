@@ -12,6 +12,10 @@ class TimeSeriesDataProcessor:
         self.left_eye_data = []
         self.right_eye_data = []
         self.due_for_break = False
+        self.breakTimer = 0
+        self.timeStrech = (
+            1000 * 60 * 10
+        )  # 10 minutes to begin with, adjust according to person
 
     def add_data(self, raw_data):
         data = json.loads(raw_data)
@@ -34,7 +38,11 @@ class TimeSeriesDataProcessor:
                 if len(eye_list) >= self.window_size:
                     if self.is_data_alarming(eye_list):
                         self.due_for_break = True
-                if self.due_for_break and len(eye_list) >= self.stress_refil_threshold:
+                        self.breakTimer = eye["i"][0]
+                if self.due_for_break and (
+                    len(eye_list) >= self.stress_refil_threshold
+                    or (eye["i"][0] - self.breakTimer > self.timeStrech)
+                ):
                     self.alarm()
                     self.due_for_break = False
 
