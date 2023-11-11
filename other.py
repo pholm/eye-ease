@@ -3,6 +3,7 @@ import json
 import glob
 from datetime import timedelta
 import numpy as np
+import random
 
 # Initialize data structures
 left_eye_data = []
@@ -18,27 +19,29 @@ for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
 
         for entry in data:
             # Handle labels and colors
-            entry_labels = ",".join(entry.get("labels", ["noLabel"]))
-            previous_labels = (
-                all_labels[-1][: len(entry_labels)] if len(all_labels) > 0 else ""
+            entry_label = entry.get("labels", ["noLabel"])[0]
+            previous_label = (
+                all_labels[-1][: len(entry_label)] if len(all_labels) > 0 else ""
             )
-            if len(all_labels) > 0 and entry_labels != previous_labels:
-                entry_labels = entry_labels + str(len(all_labels))
+            if len(all_labels) > 0 and entry_label != previous_label:
                 print(
                     "match",
-                    entry_labels,
-                    previous_labels,
-                    entry_labels != previous_labels,
+                    entry_label,
+                    previous_label,
+                    entry_label != previous_label,
                     all_labels,
-                    entry_labels + str(len(all_labels)),
+                    entry_label + str(len(all_labels)),
                 )
-                pass
-            if entry_labels not in labels_to_color:
-                labels_to_color[entry_labels] = "#%06X" % (
-                    0xFFFFFF & hash(entry_labels)
+                ## entry label should stay the same, unless it exists in the all_labels, then it should be the number of the labels in all labels that share the base form
+                baseForm = entry_label
+                entry_label = baseForm  # if something
+            if entry_label not in labels_to_color:
+                labels_to_color[entry_label] = "#%06X" % (
+                    0xFFFFFF & hash(random.randint(0, 1000000))
                 )
-                color_to_label[labels_to_color[entry_labels]] = entry_labels
-                all_labels.append(entry_labels)
+                color_to_label[labels_to_color[entry_label]] = entry_label
+                all_labels.append(entry_label)
+                print(entry_label, "new color", labels_to_color[entry_label])
 
             # Process eye data
             for eye in entry["afe"]:
@@ -55,7 +58,7 @@ for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
                     data_point = {
                         "time": formatted_time,
                         "average": average,
-                        "color": labels_to_color[entry_labels],
+                        "color": labels_to_color[entry_label],
                     }
 
                     # Append data to the correct list
