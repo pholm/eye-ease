@@ -67,16 +67,6 @@ class TimeSeriesDataProcessor:
         except requests.RequestException as e:
             print("Error sending alarm:", e)
 
-    def _process_eye_data(self, eye_data):
-        for eye in eye_data:
-            if eye and "m" in eye and eye["m"]:
-                signals = eye["m"][0][:6]
-                average_signal = sum(signals) / len(signals)
-                if eye["t"] == "L":
-                    self.left_eye_data.append(average_signal)
-                elif eye["t"] == "R":
-                    self.right_eye_data.append(average_signal)
-
     def get_running_average(self, eye):
         data = self.left_eye_data if eye == "L" else self.right_eye_data
         if len(data) < self.window_size:
@@ -120,14 +110,15 @@ class SocketListener:
             self.server_socket.close()
 
 
-# Tresholds describe how close / far the eye focus is. The straining level is an educated guess based on the data provided
-processor = TimeSeriesDataProcessor(
-    window_size=5, alarm_threshold=500, stress_refil_threshold=10000
-)
+if __name__ == "__main__":
+    # Tresholds describe how close / far the eye focus is. The straining level is an educated guess based on the data provided
+    processor = TimeSeriesDataProcessor(
+        window_size=50, alarm_threshold=500, stress_refil_threshold=10000
+    )
 
-# Set up the host and port for the socket server
-host = "127.0.0.1"  # localhost
-port = 12345  # Port to listen on (non-privileged ports are > 1023)
+    # Set up the host and port for the socket server
+    host = "127.0.0.1"  # localhost
+    port = 12345  # Port to listen on (non-privileged ports are > 1023)
 
-listener = SocketListener(host, port, processor)
-listener.start_server()
+    listener = SocketListener(host, port, processor)
+    listener.start_server()

@@ -11,6 +11,8 @@ right_eye_data = []
 all_labels = []
 labels_to_color = {}
 color_to_label = {}
+# Choose an appropriate window size for rolling average
+window_size = 100  # Example size, adjust as needed
 
 # Process each file
 for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
@@ -23,7 +25,12 @@ for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
             previous_label = (
                 all_labels[-1][: len(entry_label)] if len(all_labels) > 0 else ""
             )
-            if len(all_labels) > 0 and entry_label != previous_label:
+            if (
+                len(all_labels) > 0
+                and entry_label != previous_label
+                and entry_label in all_labels
+            ):
+                """
                 print(
                     "match",
                     entry_label,
@@ -31,10 +38,9 @@ for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
                     entry_label != previous_label,
                     all_labels,
                     entry_label + str(len(all_labels)),
-                )
+                )"""
                 ## entry label should stay the same, unless it exists in the all_labels, then it should be the number of the labels in all labels that share the base form
-                baseForm = entry_label
-                entry_label = baseForm  # if something
+                entry_label = entry_label + str(len(all_labels))
             if entry_label not in labels_to_color:
                 labels_to_color[entry_label] = "#%06X" % (
                     0xFFFFFF & hash(random.randint(0, 1000000))
@@ -96,36 +102,42 @@ def calculate_rolling_average(data, window_size):
 
 def plot_eye_data_by_color(eye_data, eye_label, window_size, y_offset=0, linestyle="-"):
     unique_colors = set(dp["color"] for dp in eye_data)
+    print("unique colors", unique_colors)
     for color in unique_colors:
         label = color_to_label[color]
         filtered_data = [dp for dp in eye_data if dp["color"] == color]
         times, rolling_averages = calculate_rolling_average(filtered_data, window_size)
 
         if len(times) == 0 or len(rolling_averages) == 0:
+            print("passed", label)
             continue  # Skip plotting if there are no data points or if rolling average could not be calculated
 
         # Apply offset to y-values
         rolling_averages += y_offset
         plt.plot(
-            times,
-            rolling_averages,
+            times[:-window_size],
+            rolling_averages[:-window_size],
             label=f"{eye_label} Eye - {label}",
             color=color,
             linestyle=linestyle,
         )
 
 
+def sort_eye_data(eye_data):
+    # Sort the data based on time
+    return sorted(eye_data, key=lambda x: x["time"])
+
+
+left_eye_data = sort_eye_data(left_eye_data)
+right_eye_data = sort_eye_data(right_eye_data)
+
 # Your existing code for plotting
 
-
-# Choose an appropriate window size for rolling average
-window_size = 50  # Example size, adjust as needed
 
 # Plotting with rolling average
 plt.figure(figsize=(15, 6))
 plot_eye_data_by_color(left_eye_data, "Left", window_size, linestyle="-")
 plot_eye_data_by_color(right_eye_data, "Right", window_size, y_offset=0, linestyle="--")
-
 plt.xlabel("Time (mm:ss)")
 plt.ylabel("Average Signal Value (Rolling Average)")
 plt.title("Rolling Average Strain Over Time")
