@@ -1,14 +1,17 @@
 import requests
 import numpy as np
 import json
+import socket
 
 
 class TimeSeriesDataProcessor:
-    def __init__(self, window_size, alarm_threshold):
+    def __init__(self, window_size, alarm_threshold, stress_refil_threshold):
         self.window_size = window_size
         self.alarm_threshold = alarm_threshold
+        self.stress_refil_threshold = stress_refil_threshold
         self.left_eye_data = []
         self.right_eye_data = []
+        self.due_for_break = False
 
     def add_data(self, raw_data):
         data = json.loads(raw_data)
@@ -27,11 +30,13 @@ class TimeSeriesDataProcessor:
                     self.left_eye_data if eye["t"] == "L" else self.right_eye_data
                 )
                 eye_list.append(processed_signal)
-
                 # Check the running average after adding new data
                 if len(eye_list) >= self.window_size:
                     if self.is_data_alarming(eye_list):
-                        self.alarm()
+                        self.due_for_break = True
+                if self.due_for_break and len(eye_list) >= self.stress_refil_threshold:
+                    self.alarm()
+                    self.due_for_break = False
 
     def complex_analysis(self, signals):
         weights = np.array([0.3, 0.25, 0.25, 0.1, 0.05, 0.05])
@@ -108,8 +113,10 @@ class SocketListener:
             self.server_socket.close()
 
 
-# Example usage
-processor = TimeSeriesDataProcessor(window_size=5, alarm_threshold=10000)
+# Tresholds describe how close / far the eye focus is. The straining level is an educated guess based on the data provided
+processor = TimeSeriesDataProcessor(
+    window_size=5, alarm_threshold=500, stress_refil_threshold=10000
+)
 
 # Set up the host and port for the socket server
 host = "127.0.0.1"  # localhost
