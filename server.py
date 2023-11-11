@@ -51,7 +51,6 @@ class TimeSeriesDataProcessor:
         return any(data > self.alarm_threshold for data in running_avg)
 
     def alarm(self):
-        # Send an HTTPS request
         try:
             response = requests.post(
                 "https://your-alarm-url.com", json={"alert": "data is alarming"}
