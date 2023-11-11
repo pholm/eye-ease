@@ -1,4 +1,4 @@
-# Junction 2023 application
+# [Project Name]
 
 ## About
 
