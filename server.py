@@ -22,16 +22,22 @@ class TimeSeriesDataProcessor:
         for eye in eye_data:
             if eye and "m" in eye and eye["m"]:
                 signals = eye["m"][0][:6]
-                average_signal = sum(signals) / len(signals)
+                processed_signal = self.complex_analysis(signals)
                 eye_list = (
                     self.left_eye_data if eye["t"] == "L" else self.right_eye_data
                 )
-                eye_list.append(average_signal)
+                eye_list.append(processed_signal)
 
                 # Check the running average after adding new data
                 if len(eye_list) >= self.window_size:
                     if self.is_data_alarming(eye_list):
                         self.alarm()
+
+    def complex_analysis(self, signals):
+        weights = np.array([0.3, 0.25, 0.25, 0.1, 0.05, 0.05])
+        weighted_avg = np.average(signals, weights=weights)
+        std_dev = np.std(signals)
+        return weighted_avg - std_dev
 
     def is_data_alarming(self, eye_data):
         running_avg = (
