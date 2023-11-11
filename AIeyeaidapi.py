@@ -1,11 +1,12 @@
-import bluetooth
+import requests
 import numpy as np
 import json
 
 
 class TimeSeriesDataProcessor:
-    def __init__(self, window_size):
+    def __init__(self, window_size, alarm_threshold):
         self.window_size = window_size
+        self.alarm_threshold = alarm_threshold
         self.left_eye_data = []
         self.right_eye_data = []
 
@@ -16,6 +17,37 @@ class TimeSeriesDataProcessor:
 
     def process_data_entry(self, entry):
         self._process_eye_data(entry["afe"])
+
+    def _process_eye_data(self, eye_data):
+        for eye in eye_data:
+            if eye and "m" in eye and eye["m"]:
+                signals = eye["m"][0][:6]
+                average_signal = sum(signals) / len(signals)
+                eye_list = (
+                    self.left_eye_data if eye["t"] == "L" else self.right_eye_data
+                )
+                eye_list.append(average_signal)
+
+                # Check the running average after adding new data
+                if len(eye_list) >= self.window_size:
+                    if self.is_data_alarming(eye_list):
+                        self.alarm()
+
+    def is_data_alarming(self, eye_data):
+        running_avg = (
+            np.convolve(eye_data, np.ones(self.window_size), "valid") / self.window_size
+        )
+        return any(data > self.alarm_threshold for data in running_avg)
+
+    def alarm(self):
+        # Send an HTTPS request
+        try:
+            response = requests.post(
+                "https://your-alarm-url.com", json={"alert": "data is alarming"}
+            )
+            print("Alarm sent, response:", response.status_code)
+        except requests.RequestException as e:
+            print("Error sending alarm:", e)
 
     def _process_eye_data(self, eye_data):
         for eye in eye_data:
@@ -34,32 +66,26 @@ class TimeSeriesDataProcessor:
         return np.convolve(data, np.ones(self.window_size), "valid") / self.window_size
 
 
-class BluetoothListener:
-    def __init__(self, uuid, service_name, processor):
-        self.uuid = uuid
-        self.service_name = service_name
+class SocketListener:
+    def __init__(self, host, port, processor):
+        self.host = host
+        self.port = port
         self.processor = processor
-        self.server_sock = None
-        self.client_sock = None
+        self.server_socket = None
+        self.client_socket = None
 
     def start_server(self):
-        self.server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-        self.server_sock.bind(("", bluetooth.PORT_ANY))
-        self.server_sock.listen(1)
-        bluetooth.advertise_service(
-            self.server_sock,
-            self.service_name,
-            service_id=self.uuid,
-            service_classes=[self.uuid, bluetooth.SERIAL_PORT_CLASS],
-            profiles=[bluetooth.SERIAL_PORT_PROFILE],
-        )
-        print("Waiting for connection on RFCOMM channel")
-        self.client_sock, client_info = self.server_sock.accept()
-        print(f"Accepted connection from {client_info}")
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen(1)
+        print(f"Listening for connections on {self.host}:{self.port}")
+
+        self.client_socket, addr = self.server_socket.accept()
+        print(f"Connection from {addr} has been established.")
 
         try:
             while True:
-                raw_data = self.client_sock.recv(1024)  # Adjust buffer size as needed
+                raw_data = self.client_socket.recv(1024)  # Adjust buffer size as needed
                 if not raw_data:
                     break
                 print("Received data")
@@ -70,16 +96,18 @@ class BluetoothListener:
             self.stop_server()
 
     def stop_server(self):
-        if self.client_sock:
-            self.client_sock.close()
-        if self.server_sock:
-            self.server_sock.close()
+        if self.client_socket:
+            self.client_socket.close()
+        if self.server_socket:
+            self.server_socket.close()
 
 
-processor = TimeSeriesDataProcessor(window_size=5)
-listener = BluetoothListener(
-    uuid="00001101-0000-1000-8000-00805F9B34FB",
-    service_name="AIEYEAID",
-    processor=processor,
-)
+# Example usage
+processor = TimeSeriesDataProcessor(window_size=5, alarm_threshold=10000)
+
+# Set up the host and port for the socket server
+host = "127.0.0.1"  # localhost
+port = 12345  # Port to listen on (non-privileged ports are > 1023)
+
+listener = SocketListener(host, port, processor)
 listener.start_server()
