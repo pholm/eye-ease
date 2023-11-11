@@ -3,7 +3,8 @@
 ## About
 
 This is a submission to the Peek Behind the Eyes hackathon challenge provided by Pixieray in Junction 2023 event.
-![architecture](./junction diagram.drawio.png)
+
+![architecture](./junction_diagram.png)
 
 ## Contents of this repository
 
