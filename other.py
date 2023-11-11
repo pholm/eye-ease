@@ -13,7 +13,8 @@ labels_to_color = {}
 color_to_label = {}
 # Choose an appropriate window size for rolling average
 window_size = 100  # Example size, adjust as needed
-
+# Apply the 'dark_background' style
+plt.style.use("dark_background")
 # Process each file
 for filename in glob.glob("./secrets/Indoor/Participant_1/AFE_*.json"):
     with open(filename, "r") as file:
@@ -138,9 +139,15 @@ right_eye_data = sort_eye_data(right_eye_data)
 plt.figure(figsize=(15, 6))
 plot_eye_data_by_color(left_eye_data, "Left", window_size, linestyle="-")
 plot_eye_data_by_color(right_eye_data, "Right", window_size, y_offset=0, linestyle="--")
+
 plt.xlabel("Time (mm:ss)")
 plt.ylabel("Average Signal Value (Rolling Average)")
 plt.title("Rolling Average Strain Over Time")
 plt.xticks(rotation=45)
-plt.legend()
+
+# Modify legend appearance for better visibility on dark background
+legend = plt.legend()
+for text in legend.get_texts():
+    text.set_color("white")
+
 plt.show()
