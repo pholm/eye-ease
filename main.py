@@ -32,4 +32,8 @@ plt.ylabel('Ambient Light Value')
 plt.title('Ambient Light Values over Time')
 plt.xticks(rotation=45)
 plt.grid(True)
+
+# save figure as pdf
+plt.savefig('Ambient_Light_Values_over_Time.pdf')
+
 plt.show()
