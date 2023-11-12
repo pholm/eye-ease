@@ -23,11 +23,3 @@ Note you need the data set provided by Pixieray
 !!!
 ```
 
-## Other resources
-
-In addition to this repository, our project submission consists of the following resources:
-
-1. A video demo of the solution: (link)
-2. A presentation of the solution: (link)
-
-These and other resources can also be found in the Junction Platform.
